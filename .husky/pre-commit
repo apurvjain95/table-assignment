@@ -1,0 +1,9 @@
+# Run TypeScript type checking on the entire project
+echo "\n\n*****************************************************"
+echo "Running TypeScript type checking..."
+echo "Please wait while it completes..."
+echo "*****************************************************"
+npm run type-check || exit 1
+
+# Run lint-staged as usual
+npx lint-staged
