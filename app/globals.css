@@ -1,7 +1,6 @@
-@import "tailwindcss";
-
-@import "tailwindcss/preflight";
-@import "tailwindcss/utilities";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   h1 {
@@ -968,6 +967,18 @@ p:empty {
       --yellow-indicator: oklch(70.5% 0.1435 84.59);
       --yellow-track: oklch(70.5% 0.1435 84.59);
     }
+  }
+}
+
+@keyframes lineLoad {
+  0% {
+    left: -40%;
+  }
+  50% {
+    left: 90%;
+  }
+  100% {
+    left: -40%;
   }
 }
 

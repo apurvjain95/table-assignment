@@ -8,4 +8,8 @@ interface TableDataRow {
   power: number;
 }
 
-export type { TableDataRow };
+type TableDataRowWithSerialNumber = TableDataRow & {
+  serialNumber: number;
+};
+
+export type { TableDataRow, TableDataRowWithSerialNumber };
