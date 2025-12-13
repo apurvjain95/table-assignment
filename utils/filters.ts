@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import { Filter, SortObject } from "@/models/Generic";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +19,6 @@ const getFrontendFilteredContent = <T extends Record<string, any>>(
       }
       return finalFtr;
     }, [] as Filter[]) || [];
-  console.log("applicableFilters", applicableFilters);
   const filteredContent = content.filter((obj) => {
     return applicableFilters.every(({ key, values }) => {
       return values.length > 0 ? values.includes(obj[key]) : true;
@@ -54,8 +54,27 @@ const getFrontendSortedAndFilteredContent = <T extends Record<string, any>>(
   return filteredContent;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fuzzySearchOnFields = <T extends Record<string, any>>(
+  data: T[],
+  searchQuery: string,
+  ...searchFields: string[]
+) => {
+  if (!searchQuery) {
+    return data;
+  }
+  const fuse = new Fuse(data, {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    keys: searchFields,
+    threshold: 0.3,
+  });
+  return fuse.search(searchQuery).map((result) => result.item);
+};
+
 export {
   getFrontendFilteredContent,
   getFrontendSortedContent,
   getFrontendSortedAndFilteredContent,
+  fuzzySearchOnFields,
 };

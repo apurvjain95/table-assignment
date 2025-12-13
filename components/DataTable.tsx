@@ -4,10 +4,14 @@ import LineLoader from "@/components/global/LineLoader";
 import SortArrows from "@/components/global/SortArrows";
 import tableData from "@/data/tabledata";
 import useMultiSelectFilter from "@/hooks/useMultiSelectFilters";
+import useSearch from "@/hooks/useSearch";
 import { SortObject } from "@/models/Generic";
 import { TableDataRow, TableDataRowWithSerialNumber } from "@/models/TableData";
-import { getFrontendSortedAndFilteredContent } from "@/utils/filters";
-import { Checkbox, Table } from "@radix-ui/themes";
+import {
+  fuzzySearchOnFields,
+  getFrontendSortedAndFilteredContent,
+} from "@/utils/filters";
+import { Button, Checkbox, Table } from "@radix-ui/themes";
 import classNames from "classnames";
 import { useEffect, useMemo, useState } from "react";
 
@@ -66,7 +70,13 @@ const DataTable = () => {
         sortObject,
         filtersString
       );
-      setData(filteredSortedData as TableDataRow[]);
+      const searchedData = fuzzySearchOnFields(
+        filteredSortedData as TableDataRow[],
+        search,
+        "name",
+        "location"
+      );
+      setData(searchedData as TableDataRow[]);
       setSelectedRows([]);
     } catch (error) {
       console.error(error);
@@ -109,9 +119,15 @@ const DataTable = () => {
     });
   }, [healthFilterObject, locationFilterObject]);
 
+  const { search, SearchComponent } = useSearch("Search by name or location");
+
   useEffect(() => {
     getData();
-  }, [sortObject, filtersString]);
+  }, [sortObject, filtersString, search]);
+
+  const handleSubmit = () => {
+    console.log("selectedRows", selectedRows.toString());
+  };
 
   const columns = [
     {
@@ -281,36 +297,50 @@ const DataTable = () => {
     });
 
   return (
-    <Table.Root className="w-full border border-border-neutral-default rounded-md overflow-hidden">
-      <Table.Header className="bg-surface-neutral-default">
-        <Table.Row className="text-text-neutral-subdued">
-          {columns.map((column) => column.header())}
-        </Table.Row>
-      </Table.Header>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-1 gap-4 justify-between items-center">
+        <div className="w-96">
+          <SearchComponent />
+        </div>
+        <Button
+          disabled={dataLoading || selectedRows.length === 0}
+          onClick={handleSubmit}
+          className="cursor-pointer"
+        >
+          Submit
+        </Button>
+      </div>
+      <Table.Root className="w-full border border-border-neutral-default rounded-md overflow-hidden">
+        <Table.Header className="bg-surface-neutral-default">
+          <Table.Row className="text-text-neutral-subdued">
+            {columns.map((column) => column.header())}
+          </Table.Row>
+        </Table.Header>
 
-      <Table.Body>
-        {dataLoading && (
-          <Table.Row className="h-fit">
-            <Table.Cell
-              colSpan={columns.length}
-              className="p-0 h-fit shadow-none"
-            >
-              <LineLoader />
-            </Table.Cell>
-          </Table.Row>
-        )}
-        {data?.map((row, idx) => (
-          <Table.Row key={`row-${row.id}`} className={tableRowClassName(row)}>
-            {columns.map((column) =>
-              column.body({
-                ...row,
-                serialNumber: idx + 1,
-              })
-            )}
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table.Root>
+        <Table.Body>
+          {dataLoading && (
+            <Table.Row className="h-fit">
+              <Table.Cell
+                colSpan={columns.length}
+                className="p-0 h-fit shadow-none"
+              >
+                <LineLoader />
+              </Table.Cell>
+            </Table.Row>
+          )}
+          {data?.map((row, idx) => (
+            <Table.Row key={`row-${row.id}`} className={tableRowClassName(row)}>
+              {columns.map((column) =>
+                column.body({
+                  ...row,
+                  serialNumber: idx + 1,
+                })
+              )}
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </div>
   );
 };
 
