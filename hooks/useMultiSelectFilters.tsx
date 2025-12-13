@@ -23,6 +23,11 @@ const useMultiSelectFilter = ({
   };
 
   const FilterDropdown = () => {
+    const activeFiltersText =
+      filteredValues.length > 0
+        ? `${filteredValues.length} ${filteredValues.length === 1 ? "filter" : "filters"} active`
+        : "No filters active";
+
     return (
       <DropdownMenu.Root
         open={isFilterDropdownOpen}
@@ -33,23 +38,36 @@ const useMultiSelectFilter = ({
             variant="ghost"
             color={!filteredValues.length ? "gray" : "purple"}
             className="size-4 cursor-pointer"
+            aria-label={`Filter ${key}. ${activeFiltersText}`}
+            aria-expanded={isFilterDropdownOpen}
+            aria-haspopup="menu"
           >
-            <FilterIcon className="size-4" />
+            <FilterIcon className="size-4" aria-hidden="true" />
           </IconButton>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content className="w-40">
+        <DropdownMenu.Content
+          className="w-40"
+          role="menu"
+          aria-label={`${key} filter options`}
+        >
           {possibleOptions.map((option) => (
             <div
               key={option.value}
               className="rt-reset rt-BaseMenuItem rt-DropdownMenuItem flex items-center gap-2 cursor-pointer"
+              role="menuitemcheckbox"
+              aria-checked={filteredValues.includes(option.value)}
             >
               <Checkbox
                 checked={filteredValues.includes(option.value)}
                 value={option.value}
                 onClick={() => toggleFilterValue(option.value)}
-                id={option.value}
+                id={`${key}-${option.value}`}
+                aria-label={`Filter by ${option.label}`}
               />{" "}
-              <label htmlFor={option.value} className="text-body-xs-medium">
+              <label
+                htmlFor={`${key}-${option.value}`}
+                className="text-body-xs-medium cursor-pointer"
+              >
                 {option.label}
               </label>
             </div>

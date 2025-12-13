@@ -16,6 +16,16 @@ import { Button, Checkbox, Table } from "@radix-ui/themes";
 import classNames from "classnames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+// Screen reader only text component
+const VisuallyHidden = ({ children }: { children: React.ReactNode }) => (
+  <span
+    className="absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0"
+    style={{ clip: "rect(0, 0, 0, 0)" }}
+  >
+    {children}
+  </span>
+);
+
 const DataTable = () => {
   const [data, setData] = useState<TableDataRow[]>([]);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -29,8 +39,18 @@ const DataTable = () => {
   // Ref for the scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Ref for screen reader announcements
+  const announcementRef = useRef<HTMLDivElement>(null);
+
   const setSorting = (sortBy: string) => {
     setSortObject((prev) => {
+      const newOrder = prev.sortOrder === "DESC" ? "ASC" : "DESC";
+
+      // Announce to screen readers
+      if (announcementRef.current) {
+        announcementRef.current.textContent = `Table sorted by ${sortBy} in ${newOrder === "ASC" ? "ascending" : "descending"} order`;
+      }
+
       if (prev.sortOrder === "DESC") {
         return {
           sortBy,
@@ -45,24 +65,40 @@ const DataTable = () => {
   };
 
   const toggleRowSelection = (id: string) => {
+    const rowData = data.find((row) => row.id === id);
     if (selectedRows.includes(id)) {
       setSelectedRows((prev) => prev.filter((rowId) => rowId !== id));
+      if (announcementRef.current && rowData) {
+        announcementRef.current.textContent = `${rowData.name} deselected`;
+      }
     } else {
       setSelectedRows((prev) => [...prev, id]);
+      if (announcementRef.current && rowData) {
+        announcementRef.current.textContent = `${rowData.name} selected`;
+      }
     }
   };
 
   const toggleAllRowsSelection = () => {
     if (selectedRows.length === data.length) {
       setSelectedRows([]);
+      if (announcementRef.current) {
+        announcementRef.current.textContent = "All rows deselected";
+      }
     } else {
       setSelectedRows(data.map((row) => row.id));
+      if (announcementRef.current) {
+        announcementRef.current.textContent = `All ${data.length} rows selected`;
+      }
     }
   };
 
   const getData = async () => {
     try {
       setDataLoading(true);
+      if (announcementRef.current) {
+        announcementRef.current.textContent = "Loading table data";
+      }
       const completeData = tableData;
       // if I do not add setTimeout, then data will be set immediately but loader would still appear
       // thus when the loader goes away, it would feel like the data has not updated.
@@ -82,8 +118,14 @@ const DataTable = () => {
       );
       setData(searchedData as TableDataRow[]);
       setSelectedRows([]);
+      if (announcementRef.current) {
+        announcementRef.current.textContent = `Table loaded with ${searchedData.length} rows`;
+      }
     } catch (error) {
       console.error(error);
+      if (announcementRef.current) {
+        announcementRef.current.textContent = "Error loading table data";
+      }
     } finally {
       // setTimeout added to simulate data loading
       // otherwise loader will not be visible in our case since data is already present locally
@@ -157,7 +199,11 @@ const DataTable = () => {
             className="cursor-pointer"
             checked={selectedRows.length === data.length && data.length > 0}
             onClick={toggleAllRowsSelection}
-            aria-label="Select row"
+            aria-label={
+              selectedRows.length === data.length && data.length > 0
+                ? "Deselect all rows"
+                : "Select all rows"
+            }
           />
         </Table.ColumnHeaderCell>
       ),
@@ -176,7 +222,7 @@ const DataTable = () => {
             onClick={() => {
               toggleRowSelection(row.id);
             }}
-            aria-label="Select row"
+            aria-label={`${selectedRows.includes(row.id) ? "Deselect" : "Select"} ${row.name}`}
           />
         </Table.RowHeaderCell>
       ),
@@ -301,15 +347,16 @@ const DataTable = () => {
           className="text-body-xs-medium"
           style={{ width: "150px", minWidth: "150px", maxWidth: "150px" }}
         >
-          <div
-            className="flex items-center gap-1 cursor-pointer"
+          <button
+            className="flex items-center gap-1 cursor-pointer bg-transparent border-none p-0 w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
             onClick={() => setSorting("power")}
+            aria-label={`Sort by power ${sortObject.sortBy === "power" ? (sortObject.sortOrder === "ASC" ? "ascending, click to sort descending" : "descending, click to sort ascending") : ""}`}
           >
             Power{" "}
             {sortObject && (
               <SortArrows sortObject={sortObject} sortKey="power" />
             )}
-          </div>
+          </button>
         </Table.ColumnHeaderCell>
       ),
       body: (row: TableDataRowWithSerialNumber) => (
@@ -334,6 +381,16 @@ const DataTable = () => {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Screen reader announcements */}
+      <div
+        ref={announcementRef}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0"
+        style={{ clip: "rect(0, 0, 0, 0)" }}
+      />
+
       <div className="flex flex-1 gap-4 justify-between items-center">
         <div className="w-96">
           <SearchComponent />
@@ -342,11 +399,16 @@ const DataTable = () => {
           disabled={dataLoading || selectedRows.length === 0}
           onClick={handleSubmit}
           className="cursor-pointer"
+          aria-label={`Submit ${selectedRows.length} selected row${selectedRows.length !== 1 ? "s" : ""}`}
         >
           Submit
         </Button>
       </div>
-      <div className="w-full border border-border-neutral-default rounded-md overflow-hidden">
+      <div
+        className="w-full border border-border-neutral-default rounded-md overflow-hidden"
+        role="region"
+        aria-label="Data table with filtering and sorting capabilities"
+      >
         {/* Fixed Header */}
         <Table.Root className="w-full" style={{ tableLayout: "fixed" }}>
           <Table.Header className="bg-surface-neutral-default">
@@ -360,6 +422,8 @@ const DataTable = () => {
         <div
           ref={scrollContainerRef}
           className="overflow-auto max-h-[calc(100vh-12.75rem)]"
+          role="rowgroup"
+          aria-busy={dataLoading}
         >
           <Table.Root className="w-full" style={{ tableLayout: "fixed" }}>
             <Table.Body>
@@ -387,6 +451,7 @@ const DataTable = () => {
                   <Table.Row
                     key={`row-${row.id}`}
                     className={tableRowClassName(row)}
+                    aria-selected={selectedRows.includes(row.id)}
                   >
                     {columns.map((column) =>
                       column.body({

@@ -12,6 +12,8 @@ const FilterIcon = (props: SVGProps<SVGSVGElement>) => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      role="img"
+      aria-label="Filter"
       {...props}
     >
       <path d="M2 5h20" />

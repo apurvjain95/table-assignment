@@ -88,9 +88,11 @@ const useSearch = (
               start + processedText.length;
           }, 0);
         }}
+        aria-label={placeholder}
+        role="searchbox"
       >
-        <TextField.Slot className="pl-3 pr-2">
-          <SearchIcon />
+        <TextField.Slot className="pl-3 pr-2" aria-hidden="true">
+          <SearchIcon aria-hidden="true" />
         </TextField.Slot>
       </TextField.Root>
     );
