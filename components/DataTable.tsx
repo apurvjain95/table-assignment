@@ -16,16 +16,6 @@ import { Button, Checkbox, Table } from "@radix-ui/themes";
 import classNames from "classnames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-// Screen reader only text component
-const VisuallyHidden = ({ children }: { children: React.ReactNode }) => (
-  <span
-    className="absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0"
-    style={{ clip: "rect(0, 0, 0, 0)" }}
-  >
-    {children}
-  </span>
-);
-
 const DataTable = () => {
   const [data, setData] = useState<TableDataRow[]>([]);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
