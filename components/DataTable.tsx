@@ -29,6 +29,9 @@ const DataTable = () => {
   // Ref for the scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Ref for the header scroll container
+  const headerScrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Ref for screen reader announcements
   const announcementRef = useRef<HTMLDivElement>(null);
 
@@ -168,6 +171,47 @@ const DataTable = () => {
   useEffect(() => {
     getData();
   }, [sortObject, filtersString, search]);
+
+  // Sync horizontal scroll between header and body
+  useEffect(() => {
+    const headerContainer = headerScrollContainerRef.current;
+    const bodyContainer = scrollContainerRef.current;
+
+    if (!headerContainer || !bodyContainer) return;
+
+    let isScrollingBody = false;
+    let isScrollingHeader = false;
+
+    const syncHeaderScroll = () => {
+      if (isScrollingHeader) return;
+      isScrollingBody = true;
+      requestAnimationFrame(() => {
+        if (headerContainer) {
+          headerContainer.scrollLeft = bodyContainer.scrollLeft;
+        }
+        isScrollingBody = false;
+      });
+    };
+
+    const syncBodyScroll = () => {
+      if (isScrollingBody) return;
+      isScrollingHeader = true;
+      requestAnimationFrame(() => {
+        if (bodyContainer) {
+          bodyContainer.scrollLeft = headerContainer.scrollLeft;
+        }
+        isScrollingHeader = false;
+      });
+    };
+
+    bodyContainer.addEventListener("scroll", syncHeaderScroll);
+    headerContainer.addEventListener("scroll", syncBodyScroll);
+
+    return () => {
+      bodyContainer.removeEventListener("scroll", syncHeaderScroll);
+      headerContainer.removeEventListener("scroll", syncBodyScroll);
+    };
+  }, []);
 
   const handleSubmit = () => {
     console.log("selectedRows", selectedRows.toString());
@@ -381,8 +425,8 @@ const DataTable = () => {
         style={{ clip: "rect(0, 0, 0, 0)" }}
       />
 
-      <div className="flex flex-1 gap-4 justify-between items-center">
-        <div className="w-96">
+      <div className="flex flex-1 gap-4 justify-between xs:flex-col xs:items-start sm:flex-row sm:items-center">
+        <div className="max-w-96 w-full">
           <SearchComponent />
         </div>
         <Button
@@ -399,14 +443,22 @@ const DataTable = () => {
         role="region"
         aria-label="Data table with filtering and sorting capabilities"
       >
-        {/* Fixed Header */}
-        <Table.Root className="w-full" style={{ tableLayout: "fixed" }}>
-          <Table.Header className="bg-surface-neutral-default">
-            <Table.Row className="text-text-neutral-subdued">
-              {columns.map((column) => column.header())}
-            </Table.Row>
-          </Table.Header>
-        </Table.Root>
+        {/* Fixed Header with horizontal scroll sync */}
+        <div
+          ref={headerScrollContainerRef}
+          className="overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <Table.Root
+            className="w-full"
+            style={{ tableLayout: "fixed", minWidth: "862px" }}
+          >
+            <Table.Header className="bg-surface-neutral-default">
+              <Table.Row className="text-text-neutral-subdued">
+                {columns.map((column) => column.header())}
+              </Table.Row>
+            </Table.Header>
+          </Table.Root>
+        </div>
 
         {/* Scrollable Body Container */}
         <div
@@ -415,7 +467,10 @@ const DataTable = () => {
           role="rowgroup"
           aria-busy={dataLoading}
         >
-          <Table.Root className="w-full" style={{ tableLayout: "fixed" }}>
+          <Table.Root
+            className="w-full"
+            style={{ tableLayout: "fixed", minWidth: "862px" }}
+          >
             <Table.Body>
               {dataLoading && (
                 <Table.Row className="h-fit">
